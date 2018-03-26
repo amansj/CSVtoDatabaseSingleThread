@@ -34,7 +34,7 @@ public class Main {
 	static int start;
 	static int end;
 	static long  threadHashCode;
-	private final static int BATCH_SIZE=50;
+	private final static int BATCH_SIZE=100;
 	private static  String SQL="";
 	private static final String TABLE_NAME="members";
 	private static final String DESC_TABLE_NAME="DESCmembers";
@@ -207,7 +207,7 @@ public class Main {
 	public static void main(String[] args) throws IOException {
 		HashMap<Long, int[]> prevThreadStatus=deSerialize();
 		// TODO Auto-generated method stub
-		String fileName="doc/members3.csv";
+		String fileName="doc/members2.csv";
 		HashMap<String,HashMap<String,String>> tableDesc=tableDescription();
 		HashMap<String,Integer> csvHeader=csvHeader(fileName);
 		HashMap<String,Integer> tableMetaData=tableMetaData();
@@ -274,9 +274,10 @@ public class Main {
 	@SuppressWarnings("null")
 	private static void fileParseAndStore(String fileName,HashMap<String,HashMap<String,String>> tableDesc,HashMap<String,Integer> csvHeader,HashMap<String,Integer> tableMetaData) {
 		Instant funcStartTime=Instant.now();
+		MutableInt rowcount=new MutableInt();
+		HashMap<Integer,Duration> singleTimer=new HashMap<Integer,Duration>();
 		long current=start-1;
 		String sql=SQL;
-		HashMap<Integer,Duration> singleTimer=new HashMap<Integer,Duration>();
 		Connection con=null;
 		CSVReader csvReader=null;
 		long i=0;
@@ -328,6 +329,9 @@ public class Main {
 						logger.info("/****************************************Processed  " +(i-BATCH_SIZE+k+1)+ "th Record********************************************************************************/");	
 					}
 					con.commit();
+					Duration takenTime=Duration.between(funcStartTime, Instant.now());
+					rowcount.add(BATCH_SIZE);
+					singleTimer.put(rowcount.toInteger(), takenTime);
 					int[] recordStatus=threadStatus.get(threadHashCode);
 					recordStatus[2]=(int) current;
 					threadStatus.put(threadHashCode, recordStatus);
@@ -382,14 +386,13 @@ public class Main {
  	    		logger.error(e.toString());
  			}
  		}
- 				
-			  
+ 		serializeSingleTimer(singleTimer);		
 	}
-	private static void serializes(HashMap<Integer,Duration> singleTimer)
+	private static void serializeSingleTimer(HashMap<Integer,Duration> singleTimer)
 	{
 		FileOutputStream fileOut;
 		try {
-			fileOut = new FileOutputStream("single_timer.ser");
+			fileOut = new FileOutputStream("D:/single_timer.ser");
 			 ObjectOutputStream out = new ObjectOutputStream(fileOut);
 			 out.writeObject(singleTimer);
 			 out.close();
